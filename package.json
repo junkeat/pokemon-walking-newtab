@@ -1,0 +1,17 @@
+{
+  "name": "pokemon-walking-ext",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Manifest V3 Chrome Extension replacing the New Tab page with randomized walking Pokemon.",
+  "scripts": {
+    "prepare-assets": "node scripts/prepare-assets.js",
+    "build": "esbuild src/newtab.js --bundle --outfile=dist/newtab.js --format=iife --minify",
+    "verify": "node scripts/verify.js"
+  },
+  "dependencies": {
+    "pixi.js": "^8.23.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
