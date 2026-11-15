@@ -917,6 +917,152 @@ function initPokedex() {
   return { showPokemonInfo };
 }
 
+const GROUND_PALETTE = {
+  d: '#101b24',
+  g: '#1f3d3a',
+  m: '#284f49',
+  l: '#34635a',
+  r: '#0f1722',
+  s: '#283546',
+  h: '#38495e',
+  Y: '#d9a426',
+  B: '#3898c8',
+  P: '#8b74bd',
+};
+
+const GRASS_PROPS = [
+  ['..l...', '.gm.l.', 'lgmgm.', 'dgmdg.', '.ddd..'],
+  ['.l..l', 'gm.mg', 'dgmgd', '.ddd.'],
+  ['.l.m.', 'lmlgm', 'gmmdg', '.ddd.'],
+];
+
+const PEBBLE_PROPS = [
+  ['.hh..', 'hssr.', 'rsrr.'],
+  ['.h....', 'hsr.h.', 'rr.hsr', '...rrr'],
+];
+
+const FLOWER_TEMPLATES = [
+  ['..F..', '.F.F.', '..F..', '.mgl.', '.ddd.'],
+  ['.FF.', 'F.F.', '.mg.', '.dd.'],
+];
+
+const FLOWER_COLORS = ['Y', 'B', 'P'];
+
+function cellHash(cx, cy, salt = 0) {
+  let h = (cx * 374761393 + cy * 668265263 + salt * 1442695041) | 0;
+  h = ((h ^ (h >>> 13)) * 1274126177) | 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+function drawGroundSprite(ctx, rows, ox, oy, flowerChar = null) {
+  for (let y = 0; y < rows.length; y++) {
+    const row = rows[y];
+    for (let x = 0; x < row.length; x++) {
+      let ch = row[x];
+      if (ch === '.') continue;
+      if (ch === 'F' && flowerChar) ch = flowerChar;
+      const color = GROUND_PALETTE[ch];
+      if (!color) continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(ox + x, oy + y, 1, 1);
+    }
+  }
+}
+
+function initGround() {
+  const canvas = document.getElementById('ground-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const PIXEL_SCALE = 3;
+
+  function render() {
+    const cw = Math.max(1, Math.ceil(window.innerWidth / PIXEL_SCALE));
+    const ch = Math.max(1, Math.ceil(window.innerHeight / PIXEL_SCALE));
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
+
+    // Dark PMD night-clearing base radial gradient
+    const grad = ctx.createRadialGradient(
+      cw * 0.5,
+      ch * 0.45,
+      Math.min(cw, ch) * 0.08,
+      cw * 0.5,
+      ch * 0.48,
+      Math.hypot(cw, ch) * 0.58
+    );
+    grad.addColorStop(0, '#152230');
+    grad.addColorStop(1, '#0b1119');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Subtle pixel-dithered moss patches across the ground
+    const mossCell = 36;
+    const mossCols = Math.ceil(cw / mossCell);
+    const mossRows = Math.ceil(ch / mossCell);
+    for (let cy = 0; cy < mossRows; cy++) {
+      for (let cx = 0; cx < mossCols; cx++) {
+        const r1 = cellHash(cx, cy, 11);
+        if (r1 > 0.42) continue;
+        const r2 = cellHash(cx, cy, 12);
+        const r3 = cellHash(cx, cy, 13);
+        const mx = Math.floor(cx * mossCell + 6 + r2 * (mossCell - 12));
+        const my = Math.floor(cy * mossCell + 6 + r3 * (mossCell - 12));
+        const rx = 6 + Math.floor(cellHash(cx, cy, 14) * 7);
+        const ry = 4 + Math.floor(cellHash(cx, cy, 15) * 4);
+        const useLighter = cellHash(cx, cy, 16) > 0.5;
+        ctx.fillStyle = useLighter ? '#172636' : '#121e2b';
+        for (let dy = -ry; dy <= ry; dy++) {
+          for (let dx = -rx; dx <= rx; dx++) {
+            const norm = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+            if (norm <= 1 && (norm <= 0.55 || ((mx + dx + my + dy) & 1) === 0)) {
+              ctx.fillRect(mx + dx, my + dy, 1, 1);
+            }
+          }
+        }
+      }
+    }
+
+    // Jittered deterministic grid for grass tufts, pebbles, and tiny flowers
+    const cellSize = 20;
+    const cols = Math.ceil(cw / cellSize);
+    const rows = Math.ceil(ch / cellSize);
+    for (let cy = 0; cy < rows; cy++) {
+      for (let cx = 0; cx < cols; cx++) {
+        if (cellHash(cx, cy, 1) > 0.65) continue;
+        const ox = Math.floor(cx * cellSize + 2 + cellHash(cx, cy, 2) * (cellSize - 9));
+        const oy = Math.floor(cy * cellSize + 2 + cellHash(cx, cy, 3) * (cellSize - 8));
+        const kind = cellHash(cx, cy, 4);
+
+        if (kind < 0.12) {
+          const tpl = FLOWER_TEMPLATES[Math.floor(cellHash(cx, cy, 5) * FLOWER_TEMPLATES.length)];
+          const flowerChar = FLOWER_COLORS[Math.floor(cellHash(cx, cy, 6) * FLOWER_COLORS.length)];
+          drawGroundSprite(ctx, tpl, ox, oy, flowerChar);
+        } else if (kind < 0.37) {
+          const prop = PEBBLE_PROPS[Math.floor(cellHash(cx, cy, 5) * PEBBLE_PROPS.length)];
+          drawGroundSprite(ctx, prop, ox, oy);
+        } else {
+          const prop = GRASS_PROPS[Math.floor(cellHash(cx, cy, 5) * GRASS_PROPS.length)];
+          drawGroundSprite(ctx, prop, ox, oy);
+        }
+      }
+    }
+  }
+
+  let resizeRaf = 0;
+  window.addEventListener('resize', () => {
+    if (resizeRaf) cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => {
+      resizeRaf = 0;
+      render();
+    });
+  });
+
+  render();
+}
+
+initGround();
 initClock();
 initSearch();
 initWeather();
