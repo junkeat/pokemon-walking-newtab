@@ -749,7 +749,7 @@ function initPokedex() {
   const ctx = spriteCanvas.getContext('2d');
   const portraitCache = new Map();
   const cryAudio = new Audio();
-  cryAudio.volume = 0.15;
+  cryAudio.volume = 0.10;
   let selectionSeq = 0;
 
   async function playPokemonCry(dexNum, seq) {
