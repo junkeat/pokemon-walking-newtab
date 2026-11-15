@@ -1,3 +1,25 @@
+@font-face {
+  font-family: "Bitcount Grid Single";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url("fonts/BitcountGridSingle-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Bitcount Grid Single";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url("fonts/BitcountGridSingle-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --pmd-font: "Bitcount Grid Single", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 *,
 *::before,
 *::after {
@@ -13,14 +35,19 @@ body {
   overflow: hidden;
   background-color: #0d1117;
   color: #f0f6fc;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--pmd-font);
+}
+
+body {
+  background: radial-gradient(circle at 50% 45%, #161f2c 0%, #0b0f17 100%);
 }
 
 #canvas-container {
   position: fixed;
   inset: 0;
-  z-index: 0;
-  background: radial-gradient(circle at 50% 45%, #161f2c 0%, #0b0f17 100%);
+  z-index: 2;
+  pointer-events: none;
+  background: transparent;
 }
 
 #canvas-container canvas {
@@ -31,7 +58,6 @@ body {
 
 .overlay {
   position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -42,53 +68,75 @@ body {
 }
 
 .clock-widget {
+  position: relative;
+  z-index: 1;
   text-align: center;
   margin-block-end: 2rem;
   user-select: none;
   pointer-events: auto;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
+  font-family: var(--pmd-font);
 }
 
 .clock-time {
   display: block;
   font-size: clamp(3.5rem, 8vw, 5.75rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
-  color: #f0f6fc;
+  color: #eef2f6;
+  text-shadow:
+    3px 3px 0 #090d16,
+    -1px -1px 0 #090d16,
+    0 0 8px rgba(56, 189, 248, 0.08);
 }
 
 .clock-date {
-  margin: 0.45rem 0 0;
-  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
-  font-weight: 400;
-  color: #9ba7b4;
-  letter-spacing: 0.01em;
+  margin: 0.65rem 0 0;
+  font-size: clamp(0.85rem, 1.35vw, 1.05rem);
+  font-weight: 700;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 2px 2px 0 #090d16;
+}
+
+.clock-date::before,
+.clock-date::after {
+  content: "◆";
+  color: #38bdf8;
+  margin-inline: 0.5rem;
 }
 
 .search-container {
+  position: relative;
+  z-index: 3;
   width: min(100%, 34rem);
   pointer-events: auto;
 }
 
 .search-form {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.35rem 0.5rem 0.35rem 1.25rem;
-  border-radius: 9999px;
-  background: rgba(13, 17, 23, 0.65);
-  border: 1px solid rgba(240, 246, 252, 0.14);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  padding: 0.45rem 0.65rem 0.45rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(20, 32, 52, 0.94) 0%, rgba(12, 19, 33, 0.96) 100%);
+  box-shadow:
+    inset 0 0 0 2px #0f172a,
+    inset 0 0 0 4px #38bdf8,
+    0 8px 24px rgba(0, 0, 0, 0.6);
+  font-family: var(--pmd-font);
 }
 
-.search-form:focus-within {
-  border-color: rgba(88, 166, 255, 0.7);
-  background: rgba(13, 17, 23, 0.82);
+.pmd-search-prompt {
+  color: #fbbf24;
+  font-size: 0.85rem;
+  margin-right: 0.25rem;
+  user-select: none;
+  flex-shrink: 0;
 }
 
 .search-form input[type="search"] {
@@ -97,20 +145,20 @@ body {
   min-height: 44px;
   border: 0;
   background: transparent;
-  color: #f0f6fc;
+  color: #f8fafc;
   font: inherit;
   font-size: max(1rem, 1em);
   line-height: 1.4;
 }
 
 .search-form input[type="search"]::placeholder {
-  color: #8b949e;
+  color: #7dd3fc;
+  opacity: 0.65;
 }
 
+.search-form input[type="search"]:focus,
 .search-form input[type="search"]:focus-visible {
-  outline: 2px solid #58a6ff;
-  outline-offset: 2px;
-  border-radius: 6px;
+  outline: none;
 }
 
 .search-form input[type="search"]::-webkit-search-cancel-button {
@@ -122,25 +170,206 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
-  border: 0;
-  border-radius: 9999px;
-  background: rgba(240, 246, 252, 0.08);
-  color: #c9d1d9;
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .search-btn:hover {
-  background: rgba(88, 166, 255, 0.22);
-  color: #f0f6fc;
+  background: rgba(56, 189, 248, 0.34);
+  color: #f8fafc;
 }
 
+.search-btn:focus,
 .search-btn:focus-visible {
-  outline: 2px solid #58a6ff;
-  outline-offset: 2px;
+  outline: none;
+}
+
+.pmd-weather {
+  position: fixed;
+  top: 1.25rem;
+  left: 1.25rem;
+  z-index: 3;
+  pointer-events: auto;
+  min-width: 215px;
+  max-width: 285px;
+  padding: 10px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(20, 32, 52, 0.92) 0%, rgba(12, 19, 33, 0.94) 100%);
+  box-shadow:
+    inset 0 0 0 2px #0f172a,
+    inset 0 0 0 4px #38bdf8,
+    0 6px 20px rgba(0, 0, 0, 0.55);
+  color: #f8fafc;
+  font-family: var(--pmd-font);
+}
+
+.pmd-weather::before,
+.pmd-weather::after,
+.search-form::before,
+.search-form::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border: 2px solid #fbbf24;
+  pointer-events: none;
+}
+
+.pmd-weather::before,
+.search-form::before {
+  top: 4px;
+  left: 4px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.pmd-weather::after,
+.search-form::after {
+  right: 4px;
+  bottom: 4px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.pmd-weather-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pmd-weather-icon {
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+
+.pmd-weather-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.pmd-weather-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pmd-weather-temp {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+}
+
+.pmd-weather-condition {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fbbf24;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pmd-weather-loc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  margin-top: 3px;
+  padding: 2px 4px;
+  margin-left: -4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #7dd3fc;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pmd-weather-loc-btn:hover {
+  background: rgba(56, 189, 248, 0.16);
+  color: #e0f2fe;
+}
+
+.pmd-weather-loc-btn:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
+}
+
+.pmd-weather-location {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-weather-edit-cue {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.pmd-city-form {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.pmd-city-form[hidden] {
+  display: none;
+}
+
+.pmd-city-form input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 7px;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  font: inherit;
+  font-size: max(0.85rem, 12px);
+}
+
+.pmd-city-form input[type="text"]:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
+}
+
+.pmd-btn {
+  padding: 4px 7px;
+  border: 1px solid rgba(226, 232, 240, 0.55);
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #f8fafc;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pmd-btn:hover {
+  background: rgba(56, 189, 248, 0.35);
+}
+
+.pmd-btn:focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 1px;
 }
 
 .visually-hidden {

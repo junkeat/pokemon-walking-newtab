@@ -55,7 +55,12 @@ function verifyHtmlAndBundle() {
   const bundlePath = path.join(ROOT, 'dist', 'newtab.js');
   assert(fs.existsSync(bundlePath), 'dist/newtab.js bundle missing');
   assert(fs.statSync(bundlePath).size > 1000, 'dist/newtab.js appears empty');
-  console.log('✓ newtab.html, newtab.css, and dist/newtab.js verified');
+  for (const fontFile of ['BitcountGridSingle-latin.woff2', 'BitcountGridSingle-latin-ext.woff2']) {
+    const fontPath = path.join(ROOT, 'fonts', fontFile);
+    assert(fs.existsSync(fontPath), `Font file missing: fonts/${fontFile}`);
+    assert(fs.statSync(fontPath).size > 0, `Font file empty: fonts/${fontFile}`);
+  }
+  console.log('✓ newtab.html, newtab.css, fonts, and dist/newtab.js verified');
 }
 
 function verifySprites() {

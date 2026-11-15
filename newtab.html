@@ -9,6 +9,48 @@
 <body>
   <div id="canvas-container" aria-hidden="true"></div>
 
+  <aside id="weather-widget" class="pmd-weather" aria-label="Weather">
+    <div id="weather-display" class="pmd-weather-display">
+      <svg
+        id="weather-icon"
+        class="pmd-weather-icon"
+        width="36"
+        height="36"
+        viewBox="0 0 16 16"
+        shape-rendering="crispEdges"
+        aria-hidden="true"
+      ></svg>
+      <div class="pmd-weather-info">
+        <div class="pmd-weather-top">
+          <span id="weather-temp" class="pmd-weather-temp">--°C</span>
+          <span id="weather-condition" class="pmd-weather-condition">Checking...</span>
+        </div>
+        <button type="button" id="weather-location-btn" class="pmd-weather-loc-btn" title="Change city">
+          <span id="weather-location" class="pmd-weather-location">Locating...</span>
+          <span class="pmd-weather-edit-cue" aria-hidden="true">✎</span>
+        </button>
+      </div>
+    </div>
+
+    <form id="weather-city-form" class="pmd-city-form" hidden>
+      <label for="weather-city-input" class="visually-hidden">City name</label>
+      <input
+        type="text"
+        id="weather-city-input"
+        name="city"
+        placeholder="City name..."
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="words"
+        spellcheck="false"
+        enterkeyhint="done"
+        required
+      >
+      <button type="submit" class="pmd-btn">OK</button>
+      <button type="button" id="weather-gps-btn" class="pmd-btn" title="Use current location" aria-label="Use current location">◎</button>
+    </form>
+  </aside>
+
   <main class="overlay">
     <header class="clock-widget">
       <h1 class="visually-hidden">New Tab</h1>
@@ -18,12 +60,13 @@
 
     <search class="search-container">
       <form id="search-form" class="search-form" action="https://www.google.com/search" method="GET">
-        <label for="search-input" class="visually-hidden">Search the web</label>
+        <span class="pmd-search-prompt" aria-hidden="true">▶</span>
+        <label for="search-input" class="visually-hidden">Search</label>
         <input
           type="search"
           id="search-input"
           name="q"
-          placeholder="Search the web..."
+          placeholder="Search"
           autocomplete="off"
           autocorrect="off"
           autocapitalize="none"
