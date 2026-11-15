@@ -18,10 +18,11 @@ Try it online via GitHub Pages: **[https://junkeat.github.io/pokemon-walking-new
 
 ## Installation (Load Unpacked in Chrome)
 
-1. Open `chrome://extensions` in Google Chrome.
-2. Enable **Developer mode** in the top-right corner.
-3. Click **Load unpacked** and select this repository folder (`pokemon-walking-ext`).
-4. Open a new browser tab to see the extension in action.
+1. Download and extract `pokemon-walking-newtab-v1.0.0.zip` from [GitHub Releases](https://github.com/junkeat/pokemon-walking-newtab/releases) into a permanent folder (or clone this repository).
+2. Open `chrome://extensions` in Google Chrome.
+3. Enable **Developer mode** in the top-right corner.
+4. Click **Load unpacked** and select the extracted folder (`pokemon-walking-newtab`).
+5. Open a new browser tab to see the extension in action.
 
 ## Development & Scripts
 
@@ -36,6 +37,7 @@ Available npm scripts in [`package.json`](package.json):
 - `npm run prepare-assets` — Runs [`scripts/prepare-assets.js`](scripts/prepare-assets.js) to parse `AnimData.xml`, copy `Walk-Anim.png` and `Walk-Shadow.png` into `sprites/`, generate `sprites/manifest.json`, and build `icons/icon-{16,48,128}.png`.
 - `npm run build` — Bundles [`src/newtab.js`](src/newtab.js) into [`dist/newtab.js`](dist/newtab.js) via `esbuild`.
 - `npm run verify` — Runs [`scripts/verify.js`](scripts/verify.js) to validate [`manifest.json`](manifest.json), icon PNG dimensions, [`newtab.html`](newtab.html) CSP compliance, fonts, the compiled bundle, and all `1,526` sprite sheets.
+- `npm run zip` — Packages the runtime extension files into `pokemon-walking-newtab-v1.0.0.zip` for GitHub Releases.
 
 ## Project Structure
 
@@ -56,6 +58,7 @@ Available npm scripts in [`package.json`](package.json):
 This is an **unofficial, non-commercial fan project** created for personal browser customization and educational purposes. It is not affiliated with, endorsed, sponsored, or approved by The Pokémon Company, Nintendo, Creatures Inc., GAME FREAK inc., or Spike Chunsoft.
 
 - **Pokémon** and all related character names, designs, and trademarks are © Nintendo, Creatures Inc., and GAME FREAK inc.
-- **Pokémon Mystery Dungeon** sprite assets and animations originate from Chunsoft / Spike Chunsoft and the **PMD SpriteCollab** community contributors (preserved in the original sprite dataset's `credits.txt` metadata).
+- **Pokémon Mystery Dungeon** sprite assets, mugshot portraits, and animations originate from Chunsoft / Spike Chunsoft and the [**PMD SpriteCollab**](https://github.com/PMDCollab/SpriteCollab) community contributors (preserved in the original sprite dataset's `credits.txt` metadata).
+- **Pokédex entries & cries** are enriched at runtime from [**PokéAPI**](https://pokeapi.co/).
 
 All trademarks and copyrights belong to their respective owners. No copyright infringement is intended; if you are a rights holder and have concerns regarding any asset included in this repository, please contact the repository maintainer for prompt removal.

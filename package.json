@@ -6,7 +6,8 @@
   "scripts": {
     "prepare-assets": "node scripts/prepare-assets.js",
     "build": "esbuild src/newtab.js --bundle --outfile=dist/newtab.js --format=iife --minify",
-    "verify": "node scripts/verify.js"
+    "verify": "node scripts/verify.js",
+    "zip": "powershell -NoProfile -Command \"$ProgressPreference='SilentlyContinue'; Compress-Archive -Path manifest.json,newtab.html,newtab.css,dist,fonts,icons,sprites,README.md -DestinationPath pokemon-walking-newtab-v1.0.0.zip -Force\""
   },
   "dependencies": {
     "pixi.js": "^8.23.0"
