@@ -8,6 +8,7 @@ import {
   Texture,
   TextureStyle,
 } from 'pixi.js';
+import { GEN1_POKEMON, TYPE_COLORS, parsePokemonMeta } from './pokedex-gen1.js';
 
 const MAX_POKEMON = 25;
 const INITIAL_SPAWN_COUNT = 15;
@@ -83,7 +84,7 @@ function sliceDirectionFrames(baseTexture, meta) {
   return frames;
 }
 
-async function initCanvas() {
+async function initCanvas(onSelectPokemon) {
   const containerEl = document.getElementById('canvas-container');
   const app = new Application();
   await app.init({
@@ -199,6 +200,7 @@ async function initCanvas() {
       world.addChild(pokeContainer);
 
       const pokemonState = {
+        meta,
         container: pokeContainer,
         animSprite,
         shadowSprite,
@@ -301,17 +303,18 @@ async function initCanvas() {
     if (cityForm && !cityForm.hidden) {
       cityForm.hidden = true;
     }
-    if (e.target?.closest?.('#search-form')) {
+    if (e.target?.closest?.('#search-form, #pokedex-widget')) {
       return;
     }
     const hit = hitTestPokemon(e.clientX, e.clientY);
     if (hit) {
       hit.jumpVy = -4.5;
+      onSelectPokemon?.(hit.meta);
     }
   });
 
   window.addEventListener('pointermove', (e) => {
-    if (e.target?.closest?.('#weather-widget, #search-form')) {
+    if (e.target?.closest?.('#weather-widget, #pokedex-widget, #search-form')) {
       document.body.style.cursor = '';
       return;
     }
@@ -729,9 +732,195 @@ function initWeather() {
   loadWeather();
 }
 
+const POKEDEX_FLAVOR_PREFIX = 'pmd_pokedex_flavor_';
+const PMD_PORTRAIT_BASE = 'https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait';
+const POKE_CRY_LATEST_BASE = 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest';
+const POKE_CRY_LEGACY_BASE = 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy';
+
+function initPokedex() {
+  const widget = document.getElementById('pokedex-widget');
+  const spriteCanvas = document.getElementById('pokedex-sprite');
+  const numberEl = document.getElementById('pokedex-number');
+  const nameEl = document.getElementById('pokedex-name');
+  const variantEl = document.getElementById('pokedex-variant');
+  const typesEl = document.getElementById('pokedex-types');
+  const flavorEl = document.getElementById('pokedex-flavor');
+  const closeBtn = document.getElementById('pokedex-close-btn');
+  const ctx = spriteCanvas.getContext('2d');
+  const portraitCache = new Map();
+  const cryAudio = new Audio();
+  cryAudio.volume = 0.15;
+  let selectionSeq = 0;
+
+  async function playPokemonCry(dexNum, seq) {
+    if (!Number.isFinite(dexNum) || dexNum < 1) return;
+    if (cryAudio.src) {
+      cryAudio.pause();
+      cryAudio.currentTime = 0;
+    }
+    cryAudio.src = `${POKE_CRY_LATEST_BASE}/${dexNum}.ogg`;
+    try {
+      await cryAudio.play();
+    } catch {
+      if (seq !== selectionSeq) return;
+      cryAudio.src = `${POKE_CRY_LEGACY_BASE}/${dexNum}.ogg`;
+      try {
+        await cryAudio.play();
+      } catch {
+        // Offline or blocked playback
+      }
+    }
+  }
+
+  function loadImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+      img.src = url;
+    });
+  }
+
+  function renderPortraitToCanvas(img) {
+    const cw = spriteCanvas.width;
+    const ch = spriteCanvas.height;
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0, cw, ch);
+  }
+
+  function renderFrameToCanvas(img, meta) {
+    const cw = spriteCanvas.width;
+    const ch = spriteCanvas.height;
+    const sy = Math.min(SW_DIRECTION_ROW, meta.rows - 1) * meta.h;
+    const scale = Math.min((cw - 4) / meta.w, (ch - 4) / meta.h);
+    const dw = Math.max(1, Math.round(meta.w * scale));
+    const dh = Math.max(1, Math.round(meta.h * scale));
+    const dx = Math.round((cw - dw) / 2);
+    const dy = Math.round((ch - dh) / 2);
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, sy, meta.w, meta.h, dx, dy, dw, dh);
+  }
+
+  async function drawPokemonPortrait(meta, seq) {
+    const cached = portraitCache.get(meta.id);
+    if (cached) {
+      if (cached.type === 'portrait') {
+        renderPortraitToCanvas(cached.img);
+      } else {
+        renderFrameToCanvas(cached.img, meta);
+      }
+      return;
+    }
+
+    ctx.clearRect(0, 0, spriteCanvas.width, spriteCanvas.height);
+
+    let portraitImg = null;
+    try {
+      portraitImg = await loadImage(`${PMD_PORTRAIT_BASE}/${meta.id}/Normal.png`);
+    } catch {
+      if (meta.id.includes('/')) {
+        const baseId = meta.id.split('/')[0];
+        try {
+          portraitImg = await loadImage(`${PMD_PORTRAIT_BASE}/${baseId}/Normal.png`);
+        } catch {
+          portraitImg = null;
+        }
+      }
+    }
+
+    if (portraitImg) {
+      portraitCache.set(meta.id, { type: 'portrait', img: portraitImg });
+      if (seq === selectionSeq) {
+        renderPortraitToCanvas(portraitImg);
+      }
+      return;
+    }
+
+    try {
+      const spriteImg = await loadImage(`sprites/${meta.id}/Walk-Anim.png`);
+      portraitCache.set(meta.id, { type: 'sprite', img: spriteImg });
+      if (seq === selectionSeq) {
+        renderFrameToCanvas(spriteImg, meta);
+      }
+    } catch {
+      // Offline & no sprite available
+    }
+  }
+
+  async function enrichFlavorFromApi(dexNum, seq) {
+    try {
+      const res = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${dexNum}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const entries = Array.isArray(data.flavor_text_entries) ? data.flavor_text_entries : [];
+      const enEntry = entries.find((item) => item.language?.name === 'en');
+      const cleaned = enEntry?.flavor_text
+        ?.replace(/[\f\n\r]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!cleaned) return;
+      writeJsonStorage(`${POKEDEX_FLAVOR_PREFIX}${dexNum}`, { flavor: cleaned, ts: Date.now() });
+      if (seq === selectionSeq) {
+        flavorEl.textContent = cleaned;
+      }
+    } catch {
+      // Offline or unreachable: keep bundled local Pokédex entry
+    }
+  }
+
+  function showPokemonInfo(meta) {
+    const seq = ++selectionSeq;
+    const { dexNum, dexNumberStr, variantTag } = parsePokemonMeta(meta.id);
+    const entry = GEN1_POKEMON[dexNum] || {
+      name: `Pokémon ${dexNumberStr}`,
+      types: [],
+      flavor: 'A wandering Pokémon spotted crossing your new tab.',
+    };
+
+    numberEl.textContent = dexNumberStr;
+    nameEl.textContent = entry.name;
+
+    if (variantTag) {
+      variantEl.textContent = variantTag;
+      variantEl.hidden = false;
+    } else {
+      variantEl.hidden = true;
+    }
+
+    const typeItems = entry.types.map((typeName) => {
+      const li = document.createElement('li');
+      li.textContent = typeName;
+      li.setAttribute('style', `--type-color: ${TYPE_COLORS[typeName] || '#94a3b8'}`);
+      return li;
+    });
+    typesEl.replaceChildren(...typeItems);
+
+    const cached = readJsonStorage(`${POKEDEX_FLAVOR_PREFIX}${dexNum}`);
+    flavorEl.textContent = cached?.flavor || entry.flavor;
+
+    drawPokemonPortrait(meta, seq);
+    playPokemonCry(dexNum, seq);
+    widget.hidden = false;
+
+    if (!cached?.flavor && dexNum >= 1 && dexNum <= 386) {
+      enrichFlavorFromApi(dexNum, seq);
+    }
+  }
+
+  closeBtn.addEventListener('click', () => {
+    widget.hidden = true;
+  });
+
+  return { showPokemonInfo };
+}
+
 initClock();
 initSearch();
 initWeather();
-initCanvas().catch((err) => {
+const pokedex = initPokedex();
+initCanvas(pokedex.showPokemonInfo).catch((err) => {
   console.error('Failed to initialize Pokemon canvas:', err);
 });

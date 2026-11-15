@@ -51,6 +51,22 @@
     </form>
   </aside>
 
+  <article id="pokedex-widget" class="pmd-pokedex" aria-label="Pokémon Info" hidden>
+    <canvas id="pokedex-sprite" class="media pmd-pokedex-sprite" width="40" height="40" aria-hidden="true"></canvas>
+    <header class="pmd-pokedex-header">
+      <div class="pmd-pokedex-title-row">
+        <span id="pokedex-number" class="pmd-pokedex-number">#001</span>
+        <h2 id="pokedex-name" class="pmd-pokedex-name">Bulbasaur</h2>
+        <span id="pokedex-variant" class="pmd-pokedex-variant" hidden>★ SHINY</span>
+      </div>
+      <button type="button" id="pokedex-close-btn" class="pmd-pokedex-close" aria-label="Close Pokémon info">×</button>
+    </header>
+    <div class="pmd-pokedex-content">
+      <ul id="pokedex-types" class="pmd-pokedex-types" aria-label="Types"></ul>
+      <p id="pokedex-flavor" class="pmd-pokedex-flavor"></p>
+    </div>
+  </article>
+
   <main class="overlay">
     <header class="clock-widget">
       <h1 class="visually-hidden">New Tab</h1>

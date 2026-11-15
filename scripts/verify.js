@@ -67,8 +67,8 @@ function verifySprites() {
   const spriteManifestPath = path.join(ROOT, 'sprites', 'manifest.json');
   assert(fs.existsSync(spriteManifestPath), 'sprites/manifest.json missing');
   const data = JSON.parse(fs.readFileSync(spriteManifestPath, 'utf8'));
-  assert(Array.isArray(data.base) && data.base.length === 151, `Expected 151 base sprites, got ${data.base?.length}`);
-  assert(Array.isArray(data.variants) && data.variants.length === 449, `Expected 449 variant sprites, got ${data.variants?.length}`);
+  assert(Array.isArray(data.base) && data.base.length === 386, `Expected 386 base sprites, got ${data.base?.length}`);
+  assert(Array.isArray(data.variants) && data.variants.length >= 449, `Expected at least 449 variant sprites, got ${data.variants?.length}`);
 
   const allEntries = [...data.base, ...data.variants];
   for (const entry of allEntries) {

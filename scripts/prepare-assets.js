@@ -197,8 +197,24 @@ function scanAndCopySprites() {
   }
 
   fs.mkdirSync(SPRITES_OUT_DIR, { recursive: true });
-  const base = [];
-  const variants = [];
+  const manifestPath = path.join(SPRITES_OUT_DIR, 'manifest.json');
+  const baseMap = new Map();
+  const variantMap = new Map();
+
+  if (fs.existsSync(manifestPath)) {
+    const existing = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const hasFiles = (id) =>
+      fs.existsSync(path.join(SPRITES_OUT_DIR, id, 'Walk-Anim.png')) &&
+      fs.existsSync(path.join(SPRITES_OUT_DIR, id, 'Walk-Shadow.png'));
+
+    for (const entry of existing.base || []) {
+      if (entry?.id && hasFiles(entry.id)) baseMap.set(entry.id, entry);
+    }
+    for (const entry of existing.variants || []) {
+      if (entry?.id && hasFiles(entry.id)) variantMap.set(entry.id, entry);
+    }
+  }
+
   let skipped = 0;
 
   function walkDir(currentDir, relParts) {
@@ -236,9 +252,9 @@ function scanAndCopySprites() {
             };
 
             if (relParts.length === 1) {
-              base.push(entry);
+              baseMap.set(relId, entry);
             } else {
-              variants.push(entry);
+              variantMap.set(relId, entry);
             }
           } else {
             skipped++;
@@ -260,7 +276,8 @@ function scanAndCopySprites() {
 
   walkDir(SOURCE_DIR, []);
 
-  const manifestPath = path.join(SPRITES_OUT_DIR, 'manifest.json');
+  const base = Array.from(baseMap.values()).sort((a, b) => a.id.localeCompare(b.id));
+  const variants = Array.from(variantMap.values()).sort((a, b) => a.id.localeCompare(b.id));
   fs.writeFileSync(manifestPath, JSON.stringify({ base, variants }, null, 2));
   console.log(
     `Prepared sprites: ${base.length} base, ${variants.length} variants, ${skipped} skipped -> ${manifestPath}`
