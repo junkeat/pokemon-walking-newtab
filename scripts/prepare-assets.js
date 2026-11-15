@@ -284,5 +284,9 @@ function scanAndCopySprites() {
   );
 }
 
-generateIcons();
-scanAndCopySprites();
+if (require.main === module) {
+  generateIcons();
+  scanAndCopySprites();
+}
+
+module.exports = { readPngDims };

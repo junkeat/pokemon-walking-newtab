@@ -1,26 +1,12 @@
 const fs = require('fs');
 const path = require('path');
+const { readPngDims } = require('./prepare-assets');
 
 const ROOT = path.resolve(__dirname, '..');
 
 function assert(condition, message) {
   if (!condition) {
     throw new Error(`Verification failed: ${message}`);
-  }
-}
-
-function readPngDims(filePath) {
-  const fd = fs.openSync(filePath, 'r');
-  try {
-    const buf = Buffer.alloc(24);
-    fs.readSync(fd, buf, 0, 24, 0);
-    assert(buf.toString('ascii', 1, 4) === 'PNG', `Invalid PNG signature: ${filePath}`);
-    return {
-      width: buf.readUInt32BE(16),
-      height: buf.readUInt32BE(20),
-    };
-  } finally {
-    fs.closeSync(fd);
   }
 }
 
@@ -91,7 +77,43 @@ function verifySprites() {
   console.log(`✓ Verified all ${allEntries.length} sprite entries (${data.base.length} base, ${data.variants.length} variants)`);
 }
 
-verifyManifest();
-verifyHtmlAndBundle();
-verifySprites();
-console.log('All verification checks passed!');
+async function verifyPokedexData() {
+  const { GEN1_POKEMON, TYPE_COLORS, parsePokemonMeta } = await import('../src/pokedex-gen1.js');
+
+  for (let dex = 1; dex <= 386; dex++) {
+    const entry = GEN1_POKEMON[dex];
+    assert(entry && typeof entry.name === 'string' && entry.name.trim().length > 0, `Missing name for Dex #${dex}`);
+    assert(typeof entry.flavor === 'string' && entry.flavor.trim().length > 0, `Missing flavor for Dex #${dex}`);
+    assert(Array.isArray(entry.types) && entry.types.length > 0, `Missing types for Dex #${dex}`);
+    for (const typeName of entry.types) {
+      assert(Object.hasOwn(TYPE_COLORS, typeName), `Unknown type "${typeName}" for Dex #${dex}`);
+    }
+  }
+
+  const baseMeta = parsePokemonMeta('0001');
+  assert(baseMeta.dexNum === 1 && baseMeta.dexNumberStr === '#001' && baseMeta.variantTag === null, 'Base meta parse mismatch');
+
+  const formMeta = parsePokemonMeta('0025/0001');
+  assert(formMeta.dexNum === 25 && formMeta.dexNumberStr === '#025' && formMeta.variantTag === 'FORM', 'Form meta parse mismatch');
+
+  const shinyMeta = parsePokemonMeta('0151/0000/0001');
+  assert(shinyMeta.dexNum === 151 && shinyMeta.dexNumberStr === '#151' && shinyMeta.variantTag === '★ SHINY', 'Shiny meta parse mismatch');
+
+  const shinyFormMeta = parsePokemonMeta('0386/0001/0001');
+  assert(shinyFormMeta.dexNum === 386 && shinyFormMeta.dexNumberStr === '#386' && shinyFormMeta.variantTag === '★ SHINY FORM', 'Shiny form meta parse mismatch');
+
+  console.log('✓ Verified all 386 Pokédex entries, types, and parsePokemonMeta variants');
+}
+
+async function main() {
+  verifyManifest();
+  verifyHtmlAndBundle();
+  verifySprites();
+  await verifyPokedexData();
+  console.log('All verification checks passed!');
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

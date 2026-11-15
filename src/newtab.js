@@ -111,13 +111,41 @@ async function initCanvas(onSelectPokemon) {
   }
 
   const frameCache = new Map();
+  const MAX_CACHED_SPECIES = 60;
   const activePokemon = [];
   let pendingSpawns = 0;
   let spawnCooldown = 0;
 
+  function evictUnusedFrames() {
+    while (frameCache.size > MAX_CACHED_SPECIES) {
+      let evictId = null;
+      for (const id of frameCache.keys()) {
+        if (!activePokemon.some((p) => p.meta.id === id)) {
+          evictId = id;
+          break;
+        }
+      }
+      if (!evictId) break;
+      const entryPromise = frameCache.get(evictId);
+      frameCache.delete(evictId);
+      Promise.resolve(entryPromise)
+        .then(({ animFrames, shadowFrames }) => {
+          for (const t of animFrames) t.destroy(false);
+          for (const t of shadowFrames) t.destroy(false);
+          return Assets.unload([`sprites/${evictId}/Walk-Anim.png`, `sprites/${evictId}/Walk-Shadow.png`]);
+        })
+        .catch(() => {
+          // ignore cleanup failures
+        });
+    }
+  }
+
   async function loadPokemonFrames(meta) {
     if (frameCache.has(meta.id)) {
-      return frameCache.get(meta.id);
+      const existing = frameCache.get(meta.id);
+      frameCache.delete(meta.id);
+      frameCache.set(meta.id, existing);
+      return existing;
     }
 
     const promise = (async () => {
@@ -271,6 +299,7 @@ async function initCanvas(onSelectPokemon) {
         world.removeChild(p.container);
         p.container.destroy();
         activePokemon.splice(i, 1);
+        evictUnusedFrames();
       }
     }
 
@@ -308,7 +337,9 @@ async function initCanvas(onSelectPokemon) {
     }
     const hit = hitTestPokemon(e.clientX, e.clientY);
     if (hit) {
-      hit.jumpVy = -4.5;
+      if (hit.jumpOffsetY === 0) {
+        hit.jumpVy = -4.5;
+      }
       onSelectPokemon?.(hit.meta);
     }
   });
@@ -617,6 +648,7 @@ function initWeather() {
   const cityForm = document.getElementById('weather-city-form');
   const cityInput = document.getElementById('weather-city-input');
   const gpsBtn = document.getElementById('weather-gps-btn');
+  let weatherReqSeq = 0;
 
   function renderWeather(loc, tempC, code, isDay) {
     const rounded = Math.round(tempC);
@@ -627,7 +659,7 @@ function initWeather() {
     renderPixelIcon(iconEl, icon);
   }
 
-  async function fetchAndRenderWeather(loc) {
+  async function fetchAndRenderWeather(loc, reqSeq) {
     locEl.textContent = loc.name;
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current=temperature_2m,weather_code,is_day&timezone=auto`;
     const res = await fetch(url);
@@ -635,6 +667,7 @@ function initWeather() {
       throw new Error(`Open-Meteo request failed: ${res.status}`);
     }
     const data = await res.json();
+    if (reqSeq !== weatherReqSeq) return;
     const current = data.current;
     if (!current || typeof current.temperature_2m !== 'number') {
       throw new Error('Malformed weather response');
@@ -650,6 +683,7 @@ function initWeather() {
   }
 
   async function loadWeather(forceDetect = false) {
+    const reqSeq = ++weatherReqSeq;
     const savedLoc = forceDetect ? null : readJsonStorage(WEATHER_LOC_KEY);
     const cached = forceDetect ? null : readJsonStorage(WEATHER_CACHE_KEY);
 
@@ -665,11 +699,12 @@ function initWeather() {
 
     try {
       const loc = savedLoc || (await detectLocation());
+      if (reqSeq !== weatherReqSeq) return;
       writeJsonStorage(WEATHER_LOC_KEY, loc);
-      await fetchAndRenderWeather(loc);
+      await fetchAndRenderWeather(loc, reqSeq);
     } catch (err) {
       console.error('Weather update failed:', err);
-      if (!cached) {
+      if (reqSeq === weatherReqSeq && !cached) {
         condEl.textContent = 'Offline';
         locEl.textContent = savedLoc?.name || 'Set city';
         renderPixelIcon(iconEl, 'cloud');
@@ -690,6 +725,7 @@ function initWeather() {
     const query = cityInput.value.trim();
     if (!query) return;
 
+    const reqSeq = ++weatherReqSeq;
     condEl.textContent = 'Searching...';
     try {
       const res = await fetch(
@@ -697,6 +733,7 @@ function initWeather() {
       );
       if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
       const data = await res.json();
+      if (reqSeq !== weatherReqSeq) return;
       const first = data.results?.[0];
       if (!first) {
         condEl.textContent = 'Not found';
@@ -709,10 +746,12 @@ function initWeather() {
       };
       writeJsonStorage(WEATHER_LOC_KEY, loc);
       cityForm.hidden = true;
-      await fetchAndRenderWeather(loc);
+      await fetchAndRenderWeather(loc, reqSeq);
     } catch (err) {
       console.error('City search failed:', err);
-      condEl.textContent = 'Lookup failed';
+      if (reqSeq === weatherReqSeq) {
+        condEl.textContent = 'Lookup failed';
+      }
     }
   });
 
@@ -930,6 +969,28 @@ const GROUND_PALETTE = {
   P: '#8b74bd',
 };
 
+const IS_LITTLE_ENDIAN = (() => {
+  const b = new ArrayBuffer(4);
+  new DataView(b).setUint32(0, 0x11223344, true);
+  return new Uint32Array(b)[0] === 0x11223344;
+})();
+
+function packRgba(hex) {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 0xff;
+  const g = (n >> 8) & 0xff;
+  const b = n & 0xff;
+  return IS_LITTLE_ENDIAN
+    ? (0xff000000 | (b << 16) | (g << 8) | r) >>> 0
+    : ((r << 24) | (g << 16) | (b << 8) | 0xff) >>> 0;
+}
+
+const GROUND_PALETTE_RGBA = Object.fromEntries(
+  Object.entries(GROUND_PALETTE).map(([k, hex]) => [k, packRgba(hex)])
+);
+const MOSS_LIGHT_RGBA = packRgba('#172636');
+const MOSS_DARK_RGBA = packRgba('#121e2b');
+
 const GRASS_PROPS = [
   ['..l...', '.gm.l.', 'lgmgm.', 'dgmdg.', '.ddd..'],
   ['.l..l', 'gm.mg', 'dgmgd', '.ddd.'],
@@ -954,17 +1015,22 @@ function cellHash(cx, cy, salt = 0) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-function drawGroundSprite(ctx, rows, ox, oy, flowerChar = null) {
+function drawGroundSprite(buf32, cw, ch, rows, ox, oy, flowerChar = null) {
   for (let y = 0; y < rows.length; y++) {
+    const py = oy + y;
+    if (py < 0 || py >= ch) continue;
     const row = rows[y];
+    const rowOffset = py * cw;
     for (let x = 0; x < row.length; x++) {
-      let ch = row[x];
-      if (ch === '.') continue;
-      if (ch === 'F' && flowerChar) ch = flowerChar;
-      const color = GROUND_PALETTE[ch];
-      if (!color) continue;
-      ctx.fillStyle = color;
-      ctx.fillRect(ox + x, oy + y, 1, 1);
+      const px = ox + x;
+      if (px < 0 || px >= cw) continue;
+      let chKey = row[x];
+      if (chKey === '.') continue;
+      if (chKey === 'F' && flowerChar) chKey = flowerChar;
+      const rgba = GROUND_PALETTE_RGBA[chKey];
+      if (rgba !== undefined) {
+        buf32[rowOffset + px] = rgba;
+      }
     }
   }
 }
@@ -972,7 +1038,7 @@ function drawGroundSprite(ctx, rows, ox, oy, flowerChar = null) {
 function initGround() {
   const canvas = document.getElementById('ground-canvas');
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const PIXEL_SCALE = 3;
 
   function render() {
@@ -997,6 +1063,9 @@ function initGround() {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, cw, ch);
 
+    const imgData = ctx.getImageData(0, 0, cw, ch);
+    const buf32 = new Uint32Array(imgData.data.buffer);
+
     // Subtle pixel-dithered moss patches across the ground
     const mossCell = 36;
     const mossCols = Math.ceil(cw / mossCell);
@@ -1011,13 +1080,17 @@ function initGround() {
         const my = Math.floor(cy * mossCell + 6 + r3 * (mossCell - 12));
         const rx = 6 + Math.floor(cellHash(cx, cy, 14) * 7);
         const ry = 4 + Math.floor(cellHash(cx, cy, 15) * 4);
-        const useLighter = cellHash(cx, cy, 16) > 0.5;
-        ctx.fillStyle = useLighter ? '#172636' : '#121e2b';
+        const mossRgba = cellHash(cx, cy, 16) > 0.5 ? MOSS_LIGHT_RGBA : MOSS_DARK_RGBA;
         for (let dy = -ry; dy <= ry; dy++) {
+          const py = my + dy;
+          if (py < 0 || py >= ch) continue;
+          const rowOffset = py * cw;
           for (let dx = -rx; dx <= rx; dx++) {
+            const px = mx + dx;
+            if (px < 0 || px >= cw) continue;
             const norm = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
-            if (norm <= 1 && (norm <= 0.55 || ((mx + dx + my + dy) & 1) === 0)) {
-              ctx.fillRect(mx + dx, my + dy, 1, 1);
+            if (norm <= 1 && (norm <= 0.55 || ((px + py) & 1) === 0)) {
+              buf32[rowOffset + px] = mossRgba;
             }
           }
         }
@@ -1038,16 +1111,18 @@ function initGround() {
         if (kind < 0.12) {
           const tpl = FLOWER_TEMPLATES[Math.floor(cellHash(cx, cy, 5) * FLOWER_TEMPLATES.length)];
           const flowerChar = FLOWER_COLORS[Math.floor(cellHash(cx, cy, 6) * FLOWER_COLORS.length)];
-          drawGroundSprite(ctx, tpl, ox, oy, flowerChar);
+          drawGroundSprite(buf32, cw, ch, tpl, ox, oy, flowerChar);
         } else if (kind < 0.37) {
           const prop = PEBBLE_PROPS[Math.floor(cellHash(cx, cy, 5) * PEBBLE_PROPS.length)];
-          drawGroundSprite(ctx, prop, ox, oy);
+          drawGroundSprite(buf32, cw, ch, prop, ox, oy);
         } else {
           const prop = GRASS_PROPS[Math.floor(cellHash(cx, cy, 5) * GRASS_PROPS.length)];
-          drawGroundSprite(ctx, prop, ox, oy);
+          drawGroundSprite(buf32, cw, ch, prop, ox, oy);
         }
       }
     }
+
+    ctx.putImageData(imgData, 0, 0);
   }
 
   let resizeRaf = 0;
