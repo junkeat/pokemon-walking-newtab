@@ -8,7 +8,7 @@ import {
   Texture,
   TextureStyle,
 } from 'pixi.js';
-import { GEN1_POKEMON, TYPE_COLORS, parsePokemonMeta } from './pokedex-gen1.js';
+import { POKEMONS, TYPE_COLORS, parsePokemonMeta } from './pokedex.js';
 
 const MAX_POKEMON = 25;
 const INITIAL_SPAWN_COUNT = 15;
@@ -913,7 +913,7 @@ function initPokedex() {
   function showPokemonInfo(meta) {
     const seq = ++selectionSeq;
     const { dexNum, dexNumberStr, variantTag } = parsePokemonMeta(meta.id);
-    const entry = GEN1_POKEMON[dexNum] || {
+    const entry = POKEMONS[dexNum] || {
       name: `Pokémon ${dexNumberStr}`,
       types: [],
       flavor: 'A wandering Pokémon spotted crossing your new tab.',

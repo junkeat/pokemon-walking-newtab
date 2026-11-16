@@ -44,7 +44,7 @@ Available npm scripts in [`package.json`](package.json):
 - `manifest.json` — Chrome Manifest V3 configuration overriding `newtab`.
 - `newtab.html` / `newtab.css` — New Tab markup and PMD-styled overlay layout.
 - `src/newtab.js` — Ground renderer, clock, search handler, weather HUD, Pokédex portrait/cry widget, PixiJS scene, diagonal walker loop, and jump-on-click physics.
-- `src/pokedex-gen1.js` — Bundled National Dex `#001`–`#386` metadata, type colors, and variant ID parser.
+- `src/pokedex.js` — Bundled National Dex `#001`–`#386` metadata, type colors, and variant ID parser.
 - `dist/newtab.js` — Minified IIFE bundle loaded by `newtab.html`.
 - `fonts/` — Bundled `Bitcount Grid Single` `.woff2` font files.
 - `sprites/` — Extracted walking animations, shadows, and `manifest.json`.

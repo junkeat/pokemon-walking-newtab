@@ -78,10 +78,10 @@ function verifySprites() {
 }
 
 async function verifyPokedexData() {
-  const { GEN1_POKEMON, TYPE_COLORS, parsePokemonMeta } = await import('../src/pokedex-gen1.js');
+  const { POKEMONS, TYPE_COLORS, parsePokemonMeta } = await import('../src/pokedex.js');
 
   for (let dex = 1; dex <= 386; dex++) {
-    const entry = GEN1_POKEMON[dex];
+    const entry = POKEMONS[dex];
     assert(entry && typeof entry.name === 'string' && entry.name.trim().length > 0, `Missing name for Dex #${dex}`);
     assert(typeof entry.flavor === 'string' && entry.flavor.trim().length > 0, `Missing flavor for Dex #${dex}`);
     assert(Array.isArray(entry.types) && entry.types.length > 0, `Missing types for Dex #${dex}`);

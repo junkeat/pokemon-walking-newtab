@@ -19,7 +19,7 @@ export const TYPE_COLORS = {
   Dark: '#a1a1aa',
 };
 
-export const GEN1_POKEMON = {
+export const POKEMONS = {
   1: { name: 'Bulbasaur', types: ['Grass', 'Poison'], flavor: 'A strange seed was planted on its back at birth. The plant sprouts and grows with this Pokémon.' },
   2: { name: 'Ivysaur', types: ['Grass', 'Poison'], flavor: 'When the bulb on its back grows large, it appears to lose the ability to stand on its hind legs.' },
   3: { name: 'Venusaur', types: ['Grass', 'Poison'], flavor: 'The flower on its back catches the sun’s rays and transforms them into energy.' },
